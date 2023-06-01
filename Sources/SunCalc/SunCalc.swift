@@ -9,7 +9,7 @@ import Foundation
 
 // swiftlint:disable identifier_name
 
-public class SunCalc {
+@objcMembers public class SunCalc: NSObject {
 	let J0: Double = 0.0009
 
 	public var sunrise: Date?
