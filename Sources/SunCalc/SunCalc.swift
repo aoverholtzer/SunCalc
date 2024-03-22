@@ -54,18 +54,19 @@ import CoreLocation
 	}
     
     public class func getSunGeographicPosition(timeAndDate: Date) -> CLLocationCoordinate2D {
-        let jd_ut1: Double = DateUtils.toDays(date: timeAndDate)
-        let sun: EquatorialCoordinates = SunUtils.getSunCoords(d: jd_ut1)
+        // from https://celestialprogramming.com/snippets/terminator.html
+        let jd: Double = DateUtils.toDays(date: timeAndDate)
+        let sun: EquatorialCoordinates = SunUtils.getSunCoords(d: jd)
         
         let greenwichMeanSiderealTime: Double = {
             //The IAU Resolutions on Astronomical Reference Systems, Time Scales, and Earth Rotation Models Explanation and Implementation (George H. Kaplan)
             //https://arxiv.org/pdf/astro-ph/0602086.pdf
-            let t = (jd_ut1 - 2451545.0) / 36525.0;
+            let t = jd / 36525.0;
 //            let era = this.earthRotationAngle(jd_ut1);
             let era: Double = {
                 //Explanatory Supplement eq 6.59
-                let t = jd_ut1 - 2451545.0
-                let frac = jd_ut1.truncatingRemainder(dividingBy: 1.0)
+                let t = jd
+                let frac = jd.truncatingRemainder(dividingBy: 1.0)
                 var era = (Double.pi * 2 * (0.7790572732640 + 0.00273781191135448 * t + frac)).truncatingRemainder(dividingBy: Double.pi*2)
                 if era < 0 { era += Double.pi * 2 }
                 
@@ -94,12 +95,6 @@ import CoreLocation
 
             return (lat, lon);
         }()
-        
-        print("jd is", jd_ut1)
-        print("ra is", sun.rightAscension)
-        print("dec is", sun.declination)
-        print("greenwichMeanSiderealTime is", greenwichMeanSiderealTime)
-        print("geographicPosition is", geographicPosition)
 
         return CLLocationCoordinate2D(latitude: geographicPosition.0, longitude: geographicPosition.1)
     }
