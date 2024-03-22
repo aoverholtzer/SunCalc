@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import CoreLocation
 
 // swiftlint:disable identifier_name
 
@@ -51,6 +52,57 @@ import Foundation
 		let altitude = PositionUtils.getAltitude(h: H, phi: phi, dec: c.declination)
 		return SunPosition(azimuth: azimuth, altitude: altitude)
 	}
+    
+    public class func getSunGeographicPosition(timeAndDate: Date) -> CLLocationCoordinate2D {
+        let jd_ut1: Double = DateUtils.toDays(date: timeAndDate)
+        let sun: EquatorialCoordinates = SunUtils.getSunCoords(d: jd_ut1)
+        
+        let greenwichMeanSiderealTime: Double = {
+            //The IAU Resolutions on Astronomical Reference Systems, Time Scales, and Earth Rotation Models Explanation and Implementation (George H. Kaplan)
+            //https://arxiv.org/pdf/astro-ph/0602086.pdf
+            let t = (jd_ut1 - 2451545.0) / 36525.0;
+//            let era = this.earthRotationAngle(jd_ut1);
+            let era: Double = {
+                //Explanatory Supplement eq 6.59
+                let t = jd_ut1 - 2451545.0
+                let frac = jd_ut1.truncatingRemainder(dividingBy: 1.0)
+                var era = (Double.pi * 2 * (0.7790572732640 + 0.00273781191135448 * t + frac)).truncatingRemainder(dividingBy: Double.pi*2)
+                if era < 0 { era += Double.pi * 2 }
+                
+                return era
+            }()
+
+            //EQ 2.12
+            var gmst = (era + (0.014506 + (4612.15739966 * t) + (1.39667721 * t * t) + (-0.00009344 * t * t * t) + (0.00001882 * t * t * t * t))/60.0/60.0 * Double.pi/180.0).truncatingRemainder(dividingBy: Double.pi*2)
+            if gmst < 0 { gmst += Double.pi * 2 }
+            return gmst;
+        }()
+        
+        let geographicPosition:(Double,Double) = {
+            let lat = sun.declination;
+            var lon = sun.rightAscension - greenwichMeanSiderealTime;
+
+            if lon > 2 * Double.pi {
+                lon -= 2 * Double.pi;
+            }
+            if lon > Double.pi {
+                lon = lon - 2 * Double.pi;
+            }
+            if lon < -Double.pi {
+                lon = lon + 2 * Double.pi;
+            }
+
+            return (lat, lon);
+        }()
+        
+        print("jd is", jd_ut1)
+        print("ra is", sun.rightAscension)
+        print("dec is", sun.declination)
+        print("greenwichMeanSiderealTime is", greenwichMeanSiderealTime)
+        print("geographicPosition is", geographicPosition)
+
+        return CLLocationCoordinate2D(latitude: geographicPosition.0, longitude: geographicPosition.1)
+    }
 
 	public class func getMoonPosition(timeAndDate: Date, latitude: Double, longitude: Double) -> MoonPosition {
 		let lw: Double = Constants.RAD() * -longitude
